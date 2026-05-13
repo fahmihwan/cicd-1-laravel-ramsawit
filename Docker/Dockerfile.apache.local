@@ -1,0 +1,62 @@
+FROM php:8.2-apache
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    zip \
+    unzip \
+    nano \
+    supervisor \
+    libicu-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
+    zlib1g-dev \
+    libpng-dev \
+    libjpeg62-turbo-dev \
+    libfreetype6-dev \
+    libpq-dev \
+    libsqlite3-dev \
+    libssl-dev \
+    pkg-config \
+    postgresql-client \
+    ca-certificates \
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) \
+    bcmath \
+    exif \
+    gd \
+    intl \
+    mbstring \
+    opcache \
+    pcntl \
+    pdo \
+    pdo_pgsql \
+    pdo_sqlite \
+    zip
+
+RUN a2enmod rewrite headers expires
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get update && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /var/www/html
+
+COPY Docker/Config/apache/virtualhost.conf /etc/apache2/sites-available/000-default.conf
+COPY Docker/Config/php-configuration.ini /usr/local/etc/php/conf.d/php-configuration.ini
+# COPY Docker/Services/supervisord.apache.conf /etc/supervisor/conf.d/supervisord.conf (di jalankan di prod)
+# COPY Docker/Services/start-container.sh /usr/local/bin/start-container.s
+# RUN chmod +x /usr/local/bin/start-container.sh /usr/local/bin/run-scheduler.sh
+
+EXPOSE 80
+
+CMD ["apache2-foreground"]
+# CMD ["/usr/local/bin/start-container.sh"]

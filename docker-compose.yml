@@ -1,0 +1,39 @@
+services:
+  app:
+    build:
+      context: ./
+      dockerfile: Docker/Dockerfile.nginx.local
+    container_name: sistem_rekapitulasi_sawit
+    ports:
+      - "1001:80"
+      - "2001:5173"
+    networks:
+      - internal
+    volumes: 
+      - type: bind
+        source: ./
+        target: /var/www/html
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - postgresql
+    
+  postgresql:
+    image: postgres:16
+    container_name: sistem_rekapitulasi_sawit_postgresql
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ramsawit_docker
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: fahmi123
+    networks:
+      - internal
+    volumes:
+      - sistem_rekapitulasi_sawit_postgresql_data:/var/lib/postgresql/data
+
+networks:
+  internal: 
+    driver: bridge
+
+volumes: 
+  sistem_rekapitulasi_sawit_postgresql_data:

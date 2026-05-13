@@ -1,0 +1,60 @@
+# Docker/Dockerfile.local.nginx
+FROM php:8.2-fpm
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    nginx \
+    git \
+    curl \
+    zip \
+    unzip \
+    nano \
+    supervisor \
+    libicu-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
+    zlib1g-dev \
+    libpng-dev \
+    libjpeg62-turbo-dev \
+    libfreetype6-dev \
+    libpq-dev \
+    libsqlite3-dev \
+    libssl-dev \
+    pkg-config \
+    postgresql-client \
+    ca-certificates \
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) \
+    bcmath \
+    exif \
+    gd \
+    intl \
+    mbstring \
+    opcache \
+    pcntl \
+    pdo \
+    pdo_pgsql \
+    pdo_sqlite \
+    zip
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get update && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /var/www/html
+
+COPY Docker/Config/nginx/default.conf /etc/nginx/sites-available/default
+COPY Docker/Config/php-configuration.ini /usr/local/etc/php/conf.d/php-configuration.ini
+COPY Docker/Services/supervisord.nginx.conf /etc/supervisor/conf.d/supervisord.conf
+
+EXPOSE 80
+EXPOSE 5173
+
+CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
